@@ -1,0 +1,15 @@
+# R
+.Rhistory
+.RData
+.Rproj.user/
+
+# data 
+data/raw/
+
+# large files
+*.fastq
+*.bam
+*.gz
+
+# mac
+.DS_Store

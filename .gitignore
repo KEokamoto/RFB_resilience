@@ -1,15 +1,19 @@
-# R
 .Rhistory
 .RData
 .Rproj.user/
 
-# data 
-data/raw/
-
-# large files
-*.fastq
-*.bam
-*.gz
-
-# mac
 .DS_Store
+
+data/raw/
+data/processed/*.rds
+data/processed/*.qs
+data/processed/*.rdata
+
+figures/*.pdf
+figures/*.png
+figures/*.tiff
+figures/*.jpg
+
+results/*.csv
+results/*.tsv
+results/*.txt

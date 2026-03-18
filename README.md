@@ -20,7 +20,7 @@ Microbial communities often experience environmental disturbances, yet recovery 
 ---------------------------------------------------------------------
 
 Repository Structure
-
+```
 data/
 ├── raw/                # Raw input data (not tracked if large)
 ├── processed/          # Processed phyloseq objects and tables
@@ -33,6 +33,7 @@ scripts/
 
 figures/                # Final publication-ready figures
 results/                # Statistical outputs and intermediate tables
+```
 ---------------------------------------------------------------------
 
 Workflow

@@ -1,10 +1,10 @@
 # RFB_resilience
 
-Cross-generational gut microbiome dynamics in _Tribolium castaneum _under environmental and dietary perturbations.
+Cross-generational gut microbiome dynamics in Tribolium castaneum under environmental and dietary perturbations.
 
 This repository contains all analysis code used to generate figures and results for the manuscript:
 
-"Resilience and reliability of gut microbiome recovery across generations in_ Tribolium castaneum_"
+"Resilience and reliability of gut microbiome recovery across generations in Tribolium castaneum"
 
 ---------------------------------------------------------------------
 

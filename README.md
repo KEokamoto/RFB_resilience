@@ -33,7 +33,6 @@ scripts/
 
 figures/                # Final publication-ready figures
 results/                # Statistical outputs and intermediate tables
-
 ---------------------------------------------------------------------
 
 Workflow

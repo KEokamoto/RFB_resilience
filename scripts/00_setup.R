@@ -1,4 +1,5 @@
 # Load required packages
+library(stringr)
 library(tidyverse)
 library(readxl)
 library(phyloseq)

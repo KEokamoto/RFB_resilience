@@ -523,194 +523,19 @@ ggsave("figures/Reviewer_Fig_G1G3_PCoA_AdultGut.png",
 )
 
 #=== Figure 6. Diet-shift differential abundance + order-level heatmap ===
-#---Step A: Order-glommed object------------------------------------------
-ps_order <- tax_glom(ps_AdultGut, taxrank = "Order")
 
-sample_data(ps_order)$Treatment <- factor(
-  sample_data(ps_order)$Treatment,
-  levels = c("ControlA", "ExpA", "ControlB", "ExpB")
-)
+labels_row_pretty <- labels_row
+labels_row_pretty <- gsub("↑O", "[OAT↑]", labels_row_pretty)
+labels_row_pretty <- gsub("↓O", "[OAT↓]", labels_row_pretty)
+labels_row_pretty <- gsub("↑W", "[WHEAT↑]", labels_row_pretty)
+labels_row_pretty <- gsub("↓W", "[WHEAT↓]", labels_row_pretty)
 
-sample_data(ps_order)$Generation <- factor(
-  sample_data(ps_order)$Generation,
-  levels = c("G0", "G1", "G2", "G3")
-)
-
-# taxon -> Order name map
-tax_map <- as.data.frame(tax_table(ps_order)) %>%
-  rownames_to_column("taxon") %>%
-  select(taxon, OrderName = Order) %>%
-  mutate(
-    OrderName = gsub("_[0-9]+$", "", OrderName),
-    OrderName = ifelse(OrderName == "" | is.na(OrderName), "Unclassified", OrderName)
-  )
-
-#---Helper: run DESeq2 for one generation and one pair only------------------
-run_pairwise_deseq <- function(ps_obj, gen_val, trt1, trt0, lfc_name, padj_name) {
-  
-  samdf <- data.frame(sample_data(ps_obj))
-  samdf$SampleID <- rownames(samdf)
-  
-  keep_samples <- samdf %>%
-    dplyr::filter(Generation == gen_val, Treatment %in% c(trt0, trt1)) %>%
-    dplyr::pull(SampleID)
-  
-  ps_sub <- prune_samples(keep_samples, ps_obj)
-  ps_sub <- prune_taxa(taxa_sums(ps_sub) > 0, ps_sub)
-  ps_sub <- prune_samples(sample_sums(ps_sub) > 0, ps_sub)
-  
-  sample_data(ps_sub)$Treatment <- factor(
-    sample_data(ps_sub)$Treatment,
-    levels = c(trt0, trt1)
-  )
-  
-  dds <- phyloseq_to_deseq2(ps_sub, ~ Treatment)
-  dds <- DESeq(dds, quiet = TRUE)
-  
-  res <- results(dds, contrast = c("Treatment", trt1, trt0))
-  res_df <- as.data.frame(res)
-  res_df$taxon <- rownames(res_df)
-  
-  out <- res_df[, c("taxon", "log2FoldChange", "padj")]
-  colnames(out) <- c("taxon", lfc_name, padj_name)
-  out
-}
-
-#---Step B: run diet-shift contrasts within generation---------------------
-
-# Oat-associated contrasts: ExpA vs ControlA
-oat_G2 <- run_pairwise_deseq(
-  ps_order, "G2", "ExpA", "ControlA",
-  "lfc_oat_G2", "padj_oat_G2"
-)
-
-oat_G3 <- run_pairwise_deseq(
-  ps_order, "G3", "ExpA", "ControlA",
-  "lfc_oat_G3", "padj_oat_G3"
-)
-
-# Whole-wheat-associated contrasts: ExpB vs ControlB
-wheat_G2 <- run_pairwise_deseq(
-  ps_order, "G2", "ExpB", "ControlB",
-  "lfc_wheat_G2", "padj_wheat_G2"
-)
-
-wheat_G3 <- run_pairwise_deseq(
-  ps_order, "G3", "ExpB", "ControlB",
-  "lfc_wheat_G3", "padj_wheat_G3"
-)
-
-#---Step C: merge results and assign arrows---------------------------------
-merged_df <- full_join(oat_G2, oat_G3, by = "taxon") %>%
-  full_join(wheat_G2, by = "taxon") %>%
-  full_join(wheat_G3, by = "taxon") %>%
-  left_join(tax_map, by = "taxon")
-
-alpha <- 0.05
-
-merged_df <- merged_df %>%
-  rowwise() %>%
-  mutate(
-    oat_same_direction = !is.na(lfc_oat_G2) & !is.na(lfc_oat_G3) &
-      sign(lfc_oat_G2) == sign(lfc_oat_G3) &
-      sign(lfc_oat_G2) != 0,
-    
-    oat_any_sig = any(c(padj_oat_G2, padj_oat_G3) < alpha, na.rm = TRUE),
-    
-    oat_arrow = case_when(
-      oat_same_direction & oat_any_sig & mean(c(lfc_oat_G2, lfc_oat_G3), na.rm = TRUE) > 0 ~ "↑O",
-      oat_same_direction & oat_any_sig & mean(c(lfc_oat_G2, lfc_oat_G3), na.rm = TRUE) < 0 ~ "↓O",
-      TRUE ~ ""
-    ),
-    
-    wheat_same_direction = !is.na(lfc_wheat_G2) & !is.na(lfc_wheat_G3) &
-      sign(lfc_wheat_G2) == sign(lfc_wheat_G3) &
-      sign(lfc_wheat_G2) != 0,
-    
-    wheat_any_sig = any(c(padj_wheat_G2, padj_wheat_G3) < alpha, na.rm = TRUE),
-    
-    wheat_arrow = case_when(
-      wheat_same_direction & wheat_any_sig & mean(c(lfc_wheat_G2, lfc_wheat_G3), na.rm = TRUE) > 0 ~ "↑W",
-      wheat_same_direction & wheat_any_sig & mean(c(lfc_wheat_G2, lfc_wheat_G3), na.rm = TRUE) < 0 ~ "↓W",
-      TRUE ~ ""
-    )
-  ) %>%
-  ungroup()
-
-#---Step D: build heatmap matrix------------------------------------------
-ps_order_rel <- transform_sample_counts(ps_order, function(x) x / sum(x))
-
-sample_data(ps_order_rel)$TrtGen <- paste0(
-  sample_data(ps_order_rel)$Treatment, "_",
-  sample_data(ps_order_rel)$Generation
-)
-
-heatmap_mat <- psmelt(ps_order_rel) %>%
-  group_by(Order, TrtGen) %>%
-  summarise(MeanAbundance = mean(Abundance), .groups = "drop") %>%
-  pivot_wider(names_from = TrtGen, values_from = MeanAbundance, values_fill = 0) %>%
-  as.data.frame()
-
-rownames(heatmap_mat) <- heatmap_mat$Order
-heatmap_mat <- heatmap_mat[, -1, drop = FALSE]
-
-# column order 
-desired_col_order <- c(
-  "ControlA_G0", "ControlA_G1", "ControlA_G2", "ControlA_G3",
-  "ExpA_G0",     "ExpA_G1",     "ExpA_G2",     "ExpA_G3",
-  "ControlB_G0", "ControlB_G1", "ControlB_G2", "ControlB_G3",
-  "ExpB_G0",     "ExpB_G1",     "ExpB_G2",     "ExpB_G3"
-)
-
-desired_col_order <- desired_col_order[desired_col_order %in% colnames(heatmap_mat)]
-heatmap_mat <- heatmap_mat[, desired_col_order, drop = FALSE]
-
-# Filter rows
-heatmap_mat <- heatmap_mat[apply(heatmap_mat, 1, var) > 0, , drop = FALSE]
-heatmap_mat_filtered <- heatmap_mat[rowMeans(heatmap_mat) > 0.001, , drop = FALSE]
-
-#---Step E: build row labels with diet-specific arrows---------------------
-labels_row <- rownames(heatmap_mat_filtered) %>%
-  sapply(function(ord) {
-    
-    row_i <- merged_df %>% filter(OrderName == ord)
-    
-    oat_lab <- if (nrow(row_i) > 0)
-      unique(row_i$oat_arrow[row_i$oat_arrow != ""])
-    else character(0)
-    
-    wheat_lab <- if (nrow(row_i) > 0)
-      unique(row_i$wheat_arrow[row_i$wheat_arrow != ""])
-    else character(0)
-    
-    arrows <- c(oat_lab, wheat_lab)
-    arrows <- arrows[arrows != ""]
-    
-    if (length(arrows) > 0) {
-      
-      pretty_arrows <- arrows
-      
-      pretty_arrows <- gsub("↑O", "[OAT↑]", pretty_arrows)
-      pretty_arrows <- gsub("↓O", "[OAT↓]", pretty_arrows)
-      pretty_arrows <- gsub("↑W", "[WHEAT↑]", pretty_arrows)
-      pretty_arrows <- gsub("↓W", "[WHEAT↓]", pretty_arrows)
-      
-      paste(ord, paste(pretty_arrows, collapse = " "))
-      
-    } else {
-      ord
-    }
-  })
-#---Step F: cleaner column labels------------------------------------
-col_labels <- gsub("_", " ", colnames(heatmap_mat_filtered))
-
-#---Step G: draw and save heatmap--------------------------------------------
 heat_colors <- colorRampPalette(c("#2C7BB6", "white", "#D7191C"))(100)
 
 png(
   filename = "figures/Fig6_diet_shift_heatmap.png",
-  width = 2055,   # 6.85 in * 300 dpi
-  height = 2500,  # extra space for angled labels
+  width = 2055,
+  height = 2500,
   res = 300
 )
 
@@ -718,14 +543,14 @@ pheatmap(
   mat = as.matrix(heatmap_mat_filtered),
   scale = "row",
   cluster_rows = TRUE,
-  cluster_cols = TRUE,   # <-- dendrogram ON
+  cluster_cols = TRUE,
   fontsize_row = 8,
   fontsize_col = 7,
-  labels_row = labels_row,
+  labels_row = labels_row_pretty,
   labels_col = col_labels,
   color = heat_colors,
   border_color = "grey80",
-  angle_col = 90         # <-- rotated labels
+  angle_col = 90
 )
 
 dev.off()

@@ -3,54 +3,6 @@
 dir.create("figures", showWarnings = FALSE)
 
 #===Figure 2. Distinct Microbial Profile & Alpha Diversity (Observed and Shannon) by Treatment===
-# This figure uses 'plot_richness' to compare microbial richness across treatments.
-plot_richness(ps_AdultGut, x = "Treatment", measures = c("Observed", "Shannon")) +
-  geom_boxplot() +
-  theme_classic() +
-  labs(title = "Richness in AdultGut Samples by Treatment",
-       y = "Diversity Metric") +
-  theme(strip.background = element_blank(), axis.text.x = element_text(angle = -90))
-# ggsave("figures/Figure2_AlphaDiversity_Treatment.png", width = 8, height = 6)
-
-# Subset to AdultGut, G0 only (commercial stock baseline)
-ps_AdultGut_G0 <- subset_samples(ps_AdultGut, Generation == "G0")
-ps_AdultGut_G0 <- prune_taxa(taxa_sums(ps_AdultGut_G0) > 0, ps_AdultGut_G0)
-
-# Build alpha diversity + metadata table
-alpha_G0 <- estimate_richness(ps_AdultGut_G0, measures = c("Observed", "Shannon")) %>%
-  rownames_to_column("SampleID") %>%
-  left_join(
-    data.frame(sample_data(ps_AdultGut_G0)) %>% rownames_to_column("SampleID"),
-    by = "SampleID"
-  ) %>%
-  mutate(
-    Treatment = factor(Treatment, levels = c("ControlA", "ControlB", "ExpA", "ExpB"))
-  )
-
-# Long format for faceting
-alpha_G0_long <- alpha_G0 %>%
-  pivot_longer(
-    cols = c("Observed", "Shannon"),
-    names_to = "Metric",
-    values_to = "Value"
-  ) %>%
-  mutate(
-    Metric = factor(Metric, levels = c("Observed", "Shannon"),
-                    labels = c("Observed richness", "Shannon diversity"))
-  )
-
-# Kruskal-Wallis test within each metric
-kw_results <- alpha_G0_long %>%
-  group_by(Metric) %>%
-  summarise(
-    p = kruskal.test(Value ~ Treatment)$p.value,
-    .groups = "drop"
-  ) %>%
-  mutate(
-    p_label = paste0("Kruskal-Wallis p = ", signif(p, 3))
-  )
-
-# Plot
 p_fig2 <- ggplot(alpha_G0_long, aes(x = Treatment, y = Value)) +
   geom_boxplot(outlier.shape = NA, width = 0.65, linewidth = 0.4) +
   geom_jitter(width = 0.12, height = 0, alpha = 0.7, size = 1.4) +
@@ -285,57 +237,6 @@ ggsave("figures/Fig3b_adultgut_order_composition.png",
 
 #===FIG 4: Alpha diversity dynamics across generations========================
 # Observed richness (top) + Shannon diversity (bottom)
-
-# Set factor levels
-sample_data(ps_AdultGut)$Treatment <- factor(
-  sample_data(ps_AdultGut)$Treatment,
-  levels = trt_levels
-)
-
-sample_data(ps_AdultGut)$Generation <- factor(
-  sample_data(ps_AdultGut)$Generation,
-  levels = gen_levels
-)
-
-# Build alpha-diversity dataframe
-alpha_df <- estimate_richness(ps_AdultGut, measures = c("Observed", "Shannon")) %>%
-  rownames_to_column("SampleID") %>%
-  left_join(
-    data.frame(sample_data(ps_AdultGut)) %>% rownames_to_column("SampleID"),
-    by = "SampleID"
-  ) %>%
-  mutate(
-    Treatment  = factor(Treatment, levels = trt_levels),
-    Generation = factor(Generation, levels = gen_levels)
-  )
-
-# Long format
-alpha_long <- alpha_df %>%
-  pivot_longer(
-    cols = c("Observed", "Shannon"),
-    names_to = "Metric",
-    values_to = "Value"
-  ) %>%
-  mutate(
-    Metric = factor(
-      Metric,
-      levels = c("Observed", "Shannon"),
-      labels = c("Observed richness", "Shannon diversity")
-    )
-  )
-
-# Kruskal-Wallis p-value within each Treatment x Metric
-kw_results <- alpha_long %>%
-  group_by(Treatment, Metric) %>%
-  summarise(
-    p = kruskal.test(Value ~ Generation)$p.value,
-    .groups = "drop"
-  ) %>%
-  mutate(
-    p_label = paste0("Kruskal-Wallis p = ", signif(p, 3))
-  )
-
-# Shared theme
 fig4_theme <- theme_classic(base_size = 10) +
   theme(
     strip.background = element_blank(),

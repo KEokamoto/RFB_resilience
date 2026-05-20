@@ -461,32 +461,6 @@ pheatmap(
 dev.off()
 
 #=== Figure 7. Shannon diversity trajectories across generations ============
-# Define levels and palettes
-gen_levels <- c("G0", "G1", "G2", "G3")
-trt_levels <- c("ControlA", "ExpA", "ControlB", "ExpB")
-
-# Keep treatment shapes consistent
-trt_shapes <- c(
-  ControlA = 16,
-  ExpA     = 17,
-  ControlB = 15,
-  ExpB     = 18
-)
-
-# Treatment colors
-trt_cols <- c(
-  ControlA = "#840032",
-  ExpA     = "#f05006",
-  ControlB = "#25998f",
-  ExpB     = "#f36e98"
-)
-
-# Disturbance shading
-fill_vals <- c(
-  "Pre-disturbance"  = "#d9d9d9",
-  "Post-disturbance" = "#bdbdbd"
-)
-
 # Ensure factors
 rich_combined <- rich_combined %>%
   mutate(

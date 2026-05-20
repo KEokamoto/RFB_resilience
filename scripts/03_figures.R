@@ -2,15 +2,61 @@
 
 dir.create("figures", showWarnings = FALSE)
 
-# -------------------------
-# Figure 2
-# -------------------------
+#===Figure 2. Distinct Microbial Profile & Alpha Diversity (Observed and Shannon) by Treatment===
+# This figure uses 'plot_richness' to compare microbial richness across treatments.
+plot_richness(ps_AdultGut, x = "Treatment", measures = c("Observed", "Shannon")) +
+  geom_boxplot() +
+  theme_classic() +
+  labs(title = "Richness in AdultGut Samples by Treatment",
+       y = "Diversity Metric") +
+  theme(strip.background = element_blank(), axis.text.x = element_text(angle = -90))
+# ggsave("Figure2_AlphaDiversity_Treatment.png", width = 8, height = 6)
+
+# Subset to AdultGut, G0 only (commercial stock baseline)
+ps_AdultGut_G0 <- subset_samples(ps_AdultGut, Generation == "G0")
+ps_AdultGut_G0 <- prune_taxa(taxa_sums(ps_AdultGut_G0) > 0, ps_AdultGut_G0)
+
+# Build alpha diversity + metadata table
+alpha_G0 <- estimate_richness(ps_AdultGut_G0, measures = c("Observed", "Shannon")) %>%
+  rownames_to_column("SampleID") %>%
+  left_join(
+    data.frame(sample_data(ps_AdultGut_G0)) %>% rownames_to_column("SampleID"),
+    by = "SampleID"
+  ) %>%
+  mutate(
+    Treatment = factor(Treatment, levels = c("ControlA", "ControlB", "ExpA", "ExpB"))
+  )
+
+# Long format for faceting
+alpha_G0_long <- alpha_G0 %>%
+  pivot_longer(
+    cols = c("Observed", "Shannon"),
+    names_to = "Metric",
+    values_to = "Value"
+  ) %>%
+  mutate(
+    Metric = factor(Metric, levels = c("Observed", "Shannon"),
+                    labels = c("Observed richness", "Shannon diversity"))
+  )
+
+# Kruskal-Wallis test within each metric
+kw_results <- alpha_G0_long %>%
+  group_by(Metric) %>%
+  summarise(
+    p = kruskal.test(Value ~ Treatment)$p.value,
+    .groups = "drop"
+  ) %>%
+  mutate(
+    p_label = paste0("Kruskal-Wallis p = ", signif(p, 3))
+  )
+
+# Plot
 p_fig2 <- ggplot(alpha_G0_long, aes(x = Treatment, y = Value)) +
   geom_boxplot(outlier.shape = NA, width = 0.65, linewidth = 0.4) +
   geom_jitter(width = 0.12, height = 0, alpha = 0.7, size = 1.4) +
   facet_wrap(~Metric, scales = "free_y", nrow = 1) +
   geom_text(
-    data = kw_results_fig2,
+    data = kw_results,
     aes(x = 1, y = Inf, label = p_label),
     inherit.aes = FALSE,
     hjust = 0,
@@ -18,7 +64,7 @@ p_fig2 <- ggplot(alpha_G0_long, aes(x = Treatment, y = Value)) +
     size = 3
   ) +
   labs(
-    x = "Downstream treatment assignment",
+    x = "Treatment assignment",
     y = NULL
   ) +
   theme_classic(base_size = 10) +
@@ -31,14 +77,11 @@ p_fig2 <- ggplot(alpha_G0_long, aes(x = Treatment, y = Value)) +
   ) +
   coord_cartesian(clip = "off")
 
-ggsave(
-  "figures/Fig2_G0_baseline_alpha_diversity.png",
-  plot = p_fig2,
-  width = 6.85,
-  height = 3.8,
-  dpi = 300,
-  bg = "white"
-)
+p_fig2
+
+ggsave("Fig2_G0_baseline_alpha_diversity.png",
+        p_fig2, width = 6.85, height = 4.5, dpi = 300, bg = "white")
+
 #====FIG 3: Order-level composition in flour and adult gut====================
 # Flour = Fig. 3a
 # Adult gut = Fig. 3b

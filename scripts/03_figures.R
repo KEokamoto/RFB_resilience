@@ -361,7 +361,7 @@ p_observed <- alpha_long %>%
   scale_color_manual(values = gen_cols, drop = FALSE, name = "Generation") +
   scale_shape_manual(values = trt_shapes, drop = FALSE, name = "Treatment") +
   geom_text(
-    data = kw_results %>% filter(Metric == "Observed richness"),
+    data = kw_results_fig4 %>% filter(Metric == "Observed richness"),
     aes(x = 1, y = Inf, label = p_label),
     inherit.aes = FALSE,
     hjust = 0,
@@ -393,7 +393,7 @@ p_shannon <- alpha_long %>%
   scale_color_manual(values = gen_cols, drop = FALSE, name = "Generation") +
   scale_shape_manual(values = trt_shapes, drop = FALSE, name = "Treatment") +
   geom_text(
-    data = kw_results %>% filter(Metric == "Shannon diversity"),
+    data = kw_results_fig4 %>% filter(Metric == "Shannon diversity"),
     aes(x = 1, y = Inf, label = p_label),
     inherit.aes = FALSE,
     hjust = 0,

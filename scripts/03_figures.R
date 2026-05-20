@@ -10,7 +10,7 @@ plot_richness(ps_AdultGut, x = "Treatment", measures = c("Observed", "Shannon"))
   labs(title = "Richness in AdultGut Samples by Treatment",
        y = "Diversity Metric") +
   theme(strip.background = element_blank(), axis.text.x = element_text(angle = -90))
-# ggsave("Figure2_AlphaDiversity_Treatment.png", width = 8, height = 6)
+# ggsave("figures/Figure2_AlphaDiversity_Treatment.png", width = 8, height = 6)
 
 # Subset to AdultGut, G0 only (commercial stock baseline)
 ps_AdultGut_G0 <- subset_samples(ps_AdultGut, Generation == "G0")
@@ -79,7 +79,7 @@ p_fig2 <- ggplot(alpha_G0_long, aes(x = Treatment, y = Value)) +
 
 p_fig2
 
-ggsave("Fig2_G0_baseline_alpha_diversity.png",
+ggsave("figures/Fig2_G0_baseline_alpha_diversity.png",
         p_fig2, width = 6.85, height = 4.5, dpi = 300, bg = "white")
 
 #====FIG 3: Order-level composition in flour and adult gut====================
@@ -262,8 +262,7 @@ fig3b_gut
 
 #---8. Save separately-------------------------------------------------------
 # Fig. 3a: flour panel
-ggsave(
-  "Fig3a_flour_order_composition.png",
+ggsave("figures/Fig3a_flour_order_composition.png",
   plot = fig3a_flour,
   width = 6.85,
   height = 3.4,
@@ -272,81 +271,12 @@ ggsave(
 )
 
 # Fig. 3b: adult gut panel
-ggsave(
-  "Fig3b_adultgut_order_composition.png",
+ggsave("figures/Fig3b_adultgut_order_composition.png",
   plot = fig3b_gut,
   width = 6.85,
   height = 3.6,
   dpi = 300,
   bg = "white"
-)
-
-#=== Reviewer-requested overlap: Were downstream taxa present in G0? ===
-
-# Use order-level adult gut data
-df_overlap <- psmelt(ps_AdultGut_Order) %>%
-  group_by(Order, Generation) %>%
-  summarise(
-    total_abundance = sum(Abundance),
-    n_samples_present = sum(Abundance > 0),
-    .groups = "drop"
-  ) %>%
-  mutate(present = total_abundance > 0)
-
-g0_orders <- df_overlap %>%
-  filter(Generation == "G0", present) %>%
-  pull(Order)
-
-downstream_orders <- df_overlap %>%
-  filter(Generation %in% c("G1", "G2", "G3"), present) %>%
-  pull(Order) %>%
-  unique()
-
-overlap_summary <- tibble(
-  n_G0_orders = length(g0_orders),
-  n_downstream_orders = length(downstream_orders),
-  n_downstream_also_in_G0 = sum(downstream_orders %in% g0_orders),
-  proportion_downstream_also_in_G0 = n_downstream_also_in_G0 / n_downstream_orders
-)
-
-print(overlap_summary)
-
-write.csv(
-  overlap_summary,
-  "Reviewer_G0_downstream_order_overlap_summary.csv",
-  row.names = FALSE
-)
-
-#=== Quantify order-level relative abundance shifts across generations ===
-
-order_shift_summary <- psmelt(ps_AdultGut_Order) %>%
-  group_by(Sample, Generation, Order) %>%
-  summarise(Count = sum(Abundance), .groups = "drop") %>%
-  group_by(Sample) %>%
-  mutate(RelAbund = Count / sum(Count)) %>%
-  ungroup() %>%
-  filter(Order %in% c(
-    "Enterobacterales_A_737866",
-    "Lactobacillales",
-    "Bacteroidales",
-    "Burkholderiales_592522",
-    "Pseudomonadales_650611",
-    "Pseudomonadales_660879"
-  )) %>%
-  group_by(Generation, Order) %>%
-  summarise(
-    mean_rel_abund = mean(RelAbund, na.rm = TRUE),
-    sd_rel_abund = sd(RelAbund, na.rm = TRUE),
-    .groups = "drop"
-  ) %>%
-  arrange(Order, Generation)
-
-print(order_shift_summary)
-
-write.csv(
-  order_shift_summary,
-  "Reviewer_key_order_relative_abundance_shifts.csv",
-  row.names = FALSE
 )
 
 #===FIG 4: Alpha diversity dynamics across generations========================
@@ -485,8 +415,7 @@ combined_plot <- p_observed / p_shannon +
 print(combined_plot)
 
 # Save 
-ggsave(
-  "Fig4_alpha_diversity_dynamics.png",
+ggsave("figures/Fig4_alpha_diversity_dynamics.png",
   plot = combined_plot,
   width = 6.85,
   height = 6.4,
@@ -553,8 +482,7 @@ pcoa_plot1 <- plot_ordination(ps_AdultGut, pcoa_bray, color = "Generation") +
 
 print(pcoa_plot1)
 
-ggsave(
-  "Fig5_PCoA_AdultGut.png",
+ggsave("figures/Fig5_PCoA_AdultGut.png",
   plot = pcoa_plot1,
   width = 6.85,
   height = 4.8,
@@ -562,90 +490,7 @@ ggsave(
   bg = "white"
 )
 
-#=== Full beta diversity statistics for Figure 5: G0-G3 ===
-
-bray_all <- phyloseq::distance(ps_AdultGut, method = "bray")
-meta_all <- data.frame(sample_data(ps_AdultGut))
-
-set.seed(123)
-adonis_all <- vegan::adonis2(
-  bray_all ~ Generation * Treatment,
-  data = meta_all,
-  permutations = 999
-)
-
-print(adonis_all)
-
-write.csv(
-  as.data.frame(adonis_all),
-  "Fig5_G0G3_PERMANOVA_BrayCurtis.csv"
-)
-
-disp_gen_all <- betadisper(bray_all, meta_all$Generation)
-disp_trt_all <- betadisper(bray_all, meta_all$Treatment)
-
-capture.output(
-  list(
-    "PERMANOVA G0-G3" = adonis_all,
-    "Generation dispersion ANOVA" = anova(disp_gen_all),
-    "Generation dispersion permutation test" = permutest(disp_gen_all, permutations = 999),
-    "Treatment dispersion ANOVA" = anova(disp_trt_all),
-    "Treatment dispersion permutation test" = permutest(disp_trt_all, permutations = 999)
-  ),
-  file = "Fig5_G0G3_beta_diversity_stats.txt"
-)
-
-permutest(disp_gen_all, pairwise = TRUE, permutations = 999)
-
-#=== Reviewer-requested analysis: Beta diversity during recovery phase only ===
-# Goal: separate the initial G0 -> G1 perturbation from post-perturbation dynamics G1-G3
-ps_AdultGut_G1G3 <- subset_samples(ps_AdultGut, !is.na(Generation) & Generation %in% c("G1", "G2", "G3"))
-ps_AdultGut_G1G3 <- prune_samples(sample_sums(ps_AdultGut_G1G3) > 0, ps_AdultGut_G1G3)
-ps_AdultGut_G1G3 <- prune_taxa(taxa_sums(ps_AdultGut_G1G3) > 0, ps_AdultGut_G1G3)
-
-sample_data(ps_AdultGut_G1G3)$Generation <- droplevels(
-  factor(sample_data(ps_AdultGut_G1G3)$Generation, levels = c("G1", "G2", "G3"))
-)
-
-sample_data(ps_AdultGut_G1G3)$Treatment <- droplevels(
-  factor(sample_data(ps_AdultGut_G1G3)$Treatment, levels = trt_levels)
-)
-
-# Check sample numbers before analysis
-print(table(sample_data(ps_AdultGut_G1G3)$Generation,
-            sample_data(ps_AdultGut_G1G3)$Treatment))
-
-bray_G1G3 <- phyloseq::distance(ps_AdultGut_G1G3, method = "bray")
-meta_G1G3 <- data.frame(sample_data(ps_AdultGut_G1G3))
-
-# Make sure metadata rownames match distance labels
-meta_G1G3 <- meta_G1G3[labels(bray_G1G3), ]
-
-set.seed(123)
-adonis_G1G3 <- vegan::adonis2(
-  bray_G1G3 ~ Generation * Treatment,
-  data = meta_G1G3,
-  permutations = 999
-)
-
-print(adonis_G1G3)
-write.csv(as.data.frame(adonis_G1G3), "Reviewer_G1G3_PERMANOVA_BrayCurtis.csv")
-
-# Dispersion tests
-disp_gen_G1G3 <- betadisper(bray_G1G3, meta_G1G3$Generation)
-disp_trt_G1G3 <- betadisper(bray_G1G3, meta_G1G3$Treatment)
-
-capture.output(
-  list(
-    "PERMANOVA G1-G3" = adonis_G1G3,
-    "Generation dispersion ANOVA" = anova(disp_gen_G1G3),
-    "Generation dispersion permutation test" = permutest(disp_gen_G1G3, permutations = 999),
-    "Treatment dispersion ANOVA" = anova(disp_trt_G1G3),
-    "Treatment dispersion permutation test" = permutest(disp_trt_G1G3, permutations = 999)
-  ),
-  file = "Reviewer_G1G3_beta_diversity_stats.txt"
-)
-
+#=== Reviewer-requested Figure: Beta diversity during recovery phase only, G1-G3 ===
 # Ordination
 pcoa_bray_G1G3 <- ordinate(ps_AdultGut_G1G3, method = "PCoA", distance = "bray")
 
@@ -669,63 +514,12 @@ pcoa_plot_G1G3 <- plot_ordination(ps_AdultGut_G1G3, pcoa_bray_G1G3, color = "Gen
 
 print(pcoa_plot_G1G3)
 
-ggsave(
-  "Reviewer_Fig_G1G3_PCoA_AdultGut.png",
+ggsave("figures/Reviewer_Fig_G1G3_PCoA_AdultGut.png",
   plot = pcoa_plot_G1G3,
   width = 6.85,
   height = 4.8,
   dpi = 300,
   bg = "white"
-)
-
-#=== Reviewer-requested taxa contributing to PCoA separation ===
-# SIMPER identifies taxa contributing most to Bray-Curtis dissimilarity.
-# This directly complements the Bray-Curtis PCoA.
-
-# Use order-level data for interpretability
-extract_simper_top <- function(simper_obj, top_n = 10) {
-  out <- lapply(names(simper_obj), function(comp) {
-    
-    x <- as.data.frame(simper_obj[[comp]])
-    x$Order <- rownames(x)
-    x$Comparison <- comp
-    
-    # Some vegan versions use "cusum" instead of "cumsum"
-    if ("cusum" %in% colnames(x) && !"cumsum" %in% colnames(x)) {
-      x$cumsum <- x$cusum
-    }
-    
-    # Keep only columns that exist
-    keep_cols <- intersect(
-      c("Comparison", "Order", "average", "sd", "ratio", "ava", "avb", "cumsum", "p"),
-      colnames(x)
-    )
-    
-    x %>%
-      arrange(desc(average)) %>%
-      select(all_of(keep_cols)) %>%
-      slice_head(n = top_n)
-  })
-  
-  bind_rows(out)
-}
-
-simper_generation_top <- extract_simper_top(simper_generation, top_n = 10)
-simper_treatment_G1G3_top <- extract_simper_top(simper_treatment_G1G3, top_n = 10)
-
-print(simper_generation_top)
-print(simper_treatment_G1G3_top)
-
-write.csv(
-  simper_generation_top,
-  "Reviewer_SIMPER_top_orders_by_generation.csv",
-  row.names = FALSE
-)
-
-write.csv(
-  simper_treatment_G1G3_top,
-  "Reviewer_SIMPER_top_orders_G1G3_by_treatment.csv",
-  row.names = FALSE
 )
 
 #=== Figure 6. Diet-shift differential abundance + order-level heatmap ===
@@ -914,7 +708,7 @@ col_labels <- gsub("_", " ", colnames(heatmap_mat_filtered))
 heat_colors <- colorRampPalette(c("#2C7BB6", "white", "#D7191C"))(100)
 
 png(
-  filename = "Fig6_diet_shift_heatmap.png",
+  filename = "figures/Fig6_diet_shift_heatmap.png",
   width = 2055,   # 6.85 in * 300 dpi
   height = 2500,  # extra space for angled labels
   res = 300
@@ -1088,8 +882,7 @@ fig7 <- ggplot() +
 
 print(fig7)
 
-ggsave(
-  "Fig7_shannon_diversity_trajectories.png",
+ggsave("figures/Fig7_shannon_diversity_trajectories.png",
   plot = fig7,
   width = 6.85,
   height = 4.8,
@@ -1097,61 +890,4 @@ ggsave(
   bg = "white"
 )
 
-#=== Reviewer-requested alpha diversity analysis: recovery phase only G1-G3 ===
 
-alpha_G1G3 <- alpha_long %>%
-  filter(Generation %in% c("G1", "G2", "G3"))
-
-# Kruskal-Wallis tests across G1-G3 within each treatment and metric
-kw_alpha_G1G3 <- alpha_G1G3 %>%
-  group_by(Treatment, Metric) %>%
-  summarise(
-    p = kruskal.test(Value ~ Generation)$p.value,
-    .groups = "drop"
-  ) %>%
-  mutate(
-    p_adj_BH = p.adjust(p, method = "BH")
-  )
-
-print(kw_alpha_G1G3)
-
-write.csv(
-  kw_alpha_G1G3,
-  "Reviewer_G1G3_alpha_Kruskal_results.csv",
-  row.names = FALSE
-)
-
-# Pairwise Wilcoxon tests within each treatment and metric
-pairwise_alpha_G1G3_clean <- data.frame()
-
-for (trt in levels(alpha_G1G3$Treatment)) {
-  for (met in levels(alpha_G1G3$Metric)) {
-    
-    dat <- alpha_G1G3 %>%
-      filter(Treatment == trt, Metric == met)
-    
-    pw <- pairwise.wilcox.test(
-      x = dat$Value,
-      g = dat$Generation,
-      p.adjust.method = "BH"
-    )$p.value
-    
-    pw_df <- as.data.frame(as.table(pw), stringsAsFactors = FALSE)
-    colnames(pw_df) <- c("Generation_1", "Generation_2", "p_adj_BH")
-    
-    pw_df <- pw_df %>%
-      filter(!is.na(p_adj_BH)) %>%
-      mutate(Treatment = trt, Metric = met) %>%
-      select(Treatment, Metric, Generation_1, Generation_2, p_adj_BH)
-    
-    pairwise_alpha_G1G3_clean <- bind_rows(pairwise_alpha_G1G3_clean, pw_df)
-  }
-}
-
-print(pairwise_alpha_G1G3_clean)
-
-write.csv(
-  pairwise_alpha_G1G3_clean,
-  "Reviewer_G1G3_alpha_pairwise_wilcox_clean.csv",
-  row.names = FALSE
-)

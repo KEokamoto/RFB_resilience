@@ -17,7 +17,7 @@ gen_cols <- brewer.pal(4, "Set1")
 names(gen_cols) <- gen_levels
 
 trt_levels <- c("ControlA", "ExpA", "ControlB", "ExpB")
-trt_shapes <- c("ControlA" = 16, "ExpA" = 17, "ControlB" = 1, "ExpB" = 2)
+trt_shapes <- c("ControlA" = 16, "ExpA" = 17, "ControlB" = 15, "ExpB" = 18)
 
 trt_cols <- c(
   ControlA = "#840032",

@@ -518,3 +518,54 @@ write.csv(
   "results/reviewer_G1G3_alpha_pairwise_wilcox_clean.csv",
   row.names = FALSE
 )
+
+
+
+#=== Reviewer-requested analysis: Beta diversity during recovery phase only ===
+# Goal: separate the initial G0 -> G1 perturbation from post-perturbation dynamics G1-G3
+ps_AdultGut_G1G3 <- subset_samples(ps_AdultGut, !is.na(Generation) & Generation %in% c("G1", "G2", "G3"))
+ps_AdultGut_G1G3 <- prune_samples(sample_sums(ps_AdultGut_G1G3) > 0, ps_AdultGut_G1G3)
+ps_AdultGut_G1G3 <- prune_taxa(taxa_sums(ps_AdultGut_G1G3) > 0, ps_AdultGut_G1G3)
+
+sample_data(ps_AdultGut_G1G3)$Generation <- droplevels(
+  factor(sample_data(ps_AdultGut_G1G3)$Generation, levels = c("G1", "G2", "G3"))
+)
+
+sample_data(ps_AdultGut_G1G3)$Treatment <- droplevels(
+  factor(sample_data(ps_AdultGut_G1G3)$Treatment, levels = trt_levels)
+)
+
+# Check sample numbers before analysis
+print(table(sample_data(ps_AdultGut_G1G3)$Generation,
+            sample_data(ps_AdultGut_G1G3)$Treatment))
+
+bray_G1G3 <- phyloseq::distance(ps_AdultGut_G1G3, method = "bray")
+meta_G1G3 <- data.frame(sample_data(ps_AdultGut_G1G3))
+
+# Make sure metadata rownames match distance labels
+meta_G1G3 <- meta_G1G3[labels(bray_G1G3), ]
+
+set.seed(123)
+adonis_G1G3 <- vegan::adonis2(
+  bray_G1G3 ~ Generation * Treatment,
+  data = meta_G1G3,
+  permutations = 999
+)
+
+print(adonis_G1G3)
+write.csv(as.data.frame(adonis_G1G3), "results/Reviewer_G1G3_PERMANOVA_BrayCurtis.csv")
+
+# Dispersion tests
+disp_gen_G1G3 <- betadisper(bray_G1G3, meta_G1G3$Generation)
+disp_trt_G1G3 <- betadisper(bray_G1G3, meta_G1G3$Treatment)
+
+capture.output(
+  list(
+    "PERMANOVA G1-G3" = adonis_G1G3,
+    "Generation dispersion ANOVA" = anova(disp_gen_G1G3),
+    "Generation dispersion permutation test" = permutest(disp_gen_G1G3, permutations = 999),
+    "Treatment dispersion ANOVA" = anova(disp_trt_G1G3),
+    "Treatment dispersion permutation test" = permutest(disp_trt_G1G3, permutations = 999)
+  ),
+  file = "results/Reviewer_G1G3_beta_diversity_stats.txt"
+)

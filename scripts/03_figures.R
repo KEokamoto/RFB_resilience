@@ -56,7 +56,7 @@ p_fig2 <- ggplot(alpha_G0_long, aes(x = Treatment, y = Value)) +
   geom_jitter(width = 0.12, height = 0, alpha = 0.7, size = 1.4) +
   facet_wrap(~Metric, scales = "free_y", nrow = 1) +
   geom_text(
-    data = kw_results,
+    data = kw_results_fig2,
     aes(x = 1, y = Inf, label = p_label),
     inherit.aes = FALSE,
     hjust = 0,
@@ -77,10 +77,14 @@ p_fig2 <- ggplot(alpha_G0_long, aes(x = Treatment, y = Value)) +
   ) +
   coord_cartesian(clip = "off")
 
-p_fig2
-
-ggsave("figures/Fig2_G0_baseline_alpha_diversity.png",
-        p_fig2, width = 6.85, height = 4.5, dpi = 300, bg = "white")
+ggsave(
+  "figures/Fig2_G0_baseline_alpha_diversity.png",
+  plot = p_fig2,
+  width = 6.85,
+  height = 4.5,
+  dpi = 300,
+  bg = "white"
+)
 
 #====FIG 3: Order-level composition in flour and adult gut====================
 # Flour = Fig. 3a

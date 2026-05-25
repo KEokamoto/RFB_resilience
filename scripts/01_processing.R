@@ -1,6 +1,6 @@
 # Assumes 00_setup.R has already been sourced
 
-setwd("your/directory")
+#setwd("your/directory")
 # Import sample metadata, feature table, taxonomy, and tree
 sample_metadata <- read_excel("data/raw/sample-metadata.xlsx", col_names = TRUE)
 otu <- read_excel("data/raw/feature-table.xlsx", skip = 1)

@@ -499,6 +499,18 @@ disturbance <- data.frame(
   ymax = Inf
 )
 
+trt_shapes <- c(
+  
+  "ControlA" = 16,  # circle
+  
+  "ControlB" = 17,  # triangle
+  
+  "ExpA"     = 15,  # square
+  
+  "ExpB"     = 18   # diamond
+  
+)
+
 fig7 <- ggplot() +
   # Disturbance shading
   geom_rect(

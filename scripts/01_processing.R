@@ -1,5 +1,6 @@
 # Assumes 00_setup.R has already been sourced
 
+setwd("your/directory")
 # Import sample metadata, feature table, taxonomy, and tree
 sample_metadata <- read_excel("data/raw/sample-metadata.xlsx", col_names = TRUE)
 otu <- read_excel("data/raw/feature-table.xlsx", skip = 1)
@@ -89,6 +90,15 @@ ps <- phyloseq(OTU, TAX, SAMPLE, TREE)
 
 # Subset to AdultGut
 ps_AdultGut <- subset_samples(ps, Tissue == "AdultGut")
+
+#Rarification
+ps_AdultGut <- rarefy_even_depth(
+  ps_AdultGut,
+  sample.size = 90000,  # just below observed minimum to retain all samples
+  rngseed = 123,
+  replace = FALSE,
+  trimOTUs = TRUE
+)
 
 # Ensure Treatment and Generation exist in AdultGut metadata
 sample_df <- data.frame(sample_data(ps_AdultGut))

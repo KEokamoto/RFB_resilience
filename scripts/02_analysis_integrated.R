@@ -6,44 +6,7 @@ library(ANCOMBC)
 library(microbiome)
 
 # -------------------------
-# Figure 2 baseline stats
-# -------------------------
-alpha_G0 <- estimate_richness(ps_AdultGut_G0, measures = c("Observed", "Shannon")) %>%
-  rownames_to_column("SampleID") %>%
-  left_join(
-    data.frame(sample_data(ps_AdultGut_G0)) %>% rownames_to_column("SampleID"),
-    by = "SampleID"
-  ) %>%
-  mutate(
-    Treatment = factor(Treatment, levels = c("ControlA", "ControlB", "ExpA", "ExpB"))
-  )
-
-alpha_G0_long <- alpha_G0 %>%
-  pivot_longer(
-    cols = c("Observed", "Shannon"),
-    names_to = "Metric",
-    values_to = "Value"
-  ) %>%
-  mutate(
-    Metric = factor(
-      Metric,
-      levels = c("Observed", "Shannon"),
-      labels = c("Observed richness", "Shannon diversity")
-    )
-  )
-
-kw_results_fig2 <- alpha_G0_long %>%
-  group_by(Metric) %>%
-  summarise(
-    p = kruskal.test(Value ~ Treatment)$p.value,
-    .groups = "drop"
-  ) %>%
-  mutate(
-    p_label = paste0("Kruskal-Wallis p = ", signif(p, 3))
-  )
-
-# -------------------------
-# Figure 4 alpha diversity stats
+# Figure 3 alpha diversity stats
 # -------------------------
 alpha_df <- estimate_richness(ps_AdultGut, measures = c("Observed", "Shannon")) %>%
   rownames_to_column("SampleID") %>%
@@ -70,7 +33,7 @@ alpha_long <- alpha_df %>%
     )
   )
 
-kw_results_fig4 <- alpha_long %>%
+kw_results_fig3 <- alpha_long %>%
   group_by(Treatment, Metric) %>%
   summarise(
     p = kruskal.test(Value ~ Generation)$p.value,
@@ -544,10 +507,9 @@ write.csv(as.data.frame(adonis_terms),        "results/permanova_terms.csv",    
 write.csv(as.data.frame(adonis_margin),       "results/permanova_margin.csv",           row.names = TRUE)
 write.csv(as.data.frame(disp_anova),          "results/betadisper_anova.csv",           row.names = TRUE)
 write.csv(as.data.frame(adonis_G1G3),         "results/permanova_G1G3.csv",             row.names = TRUE)
-write.csv(as.data.frame(kw_results_fig2),     "results/fig2_kruskal.csv",               row.names = FALSE)
-write.csv(as.data.frame(kw_results_fig4),     "results/fig4_kruskal.csv",               row.names = FALSE)
-write.csv(as.data.frame(merged_df),           "results/fig6_deseq_diet_shift.csv",      row.names = FALSE)
-write.csv(as.data.frame(anbc_merged),         "results/fig6_ancombc_diet_shift.csv",    row.names = FALSE)
+write.csv(as.data.frame(kw_results_fig3),     "results/kruskal.csv",               row.names = FALSE)
+write.csv(as.data.frame(merged_df),           "results/eseq_diet_shift.csv",      row.names = FALSE)
+write.csv(as.data.frame(anbc_merged),         "results/ancombc_diet_shift.csv",    row.names = FALSE)
 write.csv(
   merged_df %>% select(taxon, OrderName, oat_arrow, wheat_arrow, oat_concordant, wheat_concordant),
   "results/fig6_concordance_summary.csv", row.names = FALSE

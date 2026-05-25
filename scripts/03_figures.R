@@ -251,10 +251,10 @@ fig4_theme <- theme_classic(base_size = 10) +
 # Observed richness panel
 p_observed <- alpha_long %>%
   filter(Metric == "Observed richness") %>%
-  ggplot(aes(x = Generation, y = Value)) +
+  ggplot(aes(x = Generation, y = Value, color = Generation)) +
   geom_boxplot(outlier.shape = NA, width = 0.65, linewidth = 0.4) +
   geom_jitter(
-    aes(color = Generation, shape = Treatment),
+    aes(shape = Treatment),
     width = 0.12, height = 0,
     alpha = 0.7, size = 1.6
   ) +
@@ -267,7 +267,8 @@ p_observed <- alpha_long %>%
     inherit.aes = FALSE,
     hjust = 0,
     vjust = 1.1,
-    size = 2.9
+    size = 2.9,
+    color = "black"
   ) +
   labs(
     x = "Generation",

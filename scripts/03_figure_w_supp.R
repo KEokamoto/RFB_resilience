@@ -3,13 +3,25 @@
 #
 # Figure numbering (post-revision):
 #   Fig 1  — experimental design diagram (not generated here)
-#   Fig 2  — community composition bars: flour substrates + gut (all samples)
+#   Fig 2  — community composition bars: flour substrates + adult gut
+#             Generated here and saved as:
+#             figures/Fig2_composition.png
 #   Fig 3  — alpha diversity dynamics: observed richness + Shannon boxplots
-#             NOTE: Fig 3 code is in 02_analysis.R / a separate plotting script.
-#             It is NOT present in this file and must be verified before submission.
+#             Generated in 02_analysis.R and saved as:
+#             figures/Fig3_alpha_diversity.png
 #   Fig 4  — two-panel PCoA: all generations (a) + G1–G3 post-disturbance (b)
+#             Generated here and saved as:
+#             figures/Fig4_PCoA_AdultGut.png
 #   Fig 5  — heatmap of diet-associated order-level shifts
+#             Generated here and saved as:
+#             figures/Fig5_diet_shift_heatmap.png
 #   Fig 6  — Shannon diversity trajectories with global G0 baseline
+#             Generated here and saved as:
+#             figures/Fig6_shannon_diversity_trajectories.png
+#
+# Archived:
+#   Former G0 baseline alpha diversity figure removed from main paper.
+#   Keep only as figures/Fig_G0_baseline_alpha_ARCHIVED.png if needed.
 #
 # Supplementary Tables:
 #   Supp Table 1 — SIMPER results (corrected: MD5 hash suffix fix applied)
@@ -20,6 +32,13 @@ dir.create("figures", showWarnings = FALSE)
 
 library(dplyr)
 library(readr)
+library(tibble)
+library(ggplot2)
+library(patchwork)
+library(scales)
+library(RColorBrewer)
+library(phyloseq)
+library(pheatmap)
 library(flextable)
 library(officer)
 library(cowplot)
@@ -54,7 +73,7 @@ library(cowplot)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Figure 2 — community composition bars: flour substrates (a) + gut (b)
+# Figure 2 — community composition bars: flour substrates (a) + adult gut (b)
 # ─────────────────────────────────────────────────────────────────────────────
 
 flour_types <- c("WholeWheatFresh", "WholeWheatUsed", "OatFresh", "OatUsed")
@@ -221,12 +240,9 @@ ggsave("figures/Fig2_composition.png",
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Figure 3 — alpha diversity dynamics (observed richness + Shannon boxplots)
-# WARNING: this figure's plotting code is NOT present in this script.
-# Verify that it exists in 02_analysis.R or a dedicated plotting script,
-# and that the output is saved to figures/Fig3_alpha_diversity.png before
-# submission. The manuscript cites this figure throughout the Results section.
+# Generated in 02_analysis.R and saved as:
+# figures/Fig3_alpha_diversity.png
 # ─────────────────────────────────────────────────────────────────────────────
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Figure 4 — two-panel PCoA: all generations (a) + G1–G3 post-disturbance (b)
@@ -284,7 +300,7 @@ fig4b_with_legend <- plot_ordination(ps_G1G3, pcoa_G1G3, color = "Generation") +
   ) +
   labs(x = paste0("PCoA 1 (", pc1_G1G3, "%)"),
        y = paste0("PCoA 2 (", pc2_G1G3, "%)"),
-       title = "Post-disturbance only (G1\u2013G3)") +
+       title = "Post-disturbance generations (G1\u2013G3)") +
   theme_classic(base_size = 10) +
   theme(legend.position = "right",
         plot.title       = element_text(size = 9, face = "plain"),
@@ -308,7 +324,8 @@ ggsave("figures/Fig4_PCoA_AdultGut.png",
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Figure 5 — heatmap of diet-associated order-level shifts
-# labels_row and heatmap_mat_filtered are computed in 02_analysis.R
+# Row-scaled z-score heatmap.
+# labels_row, col_labels, and heatmap_mat_filtered are computed in 02_analysis.R
 # ─────────────────────────────────────────────────────────────────────────────
 
 heat_colors <- colorRampPalette(c("#2C7BB6", "white", "#D7191C"))(100)
@@ -436,6 +453,8 @@ ggsave("figures/Fig6_shannon_diversity_trajectories.png",
 # substr(taxon_raw, 1, 32) strips the suffix before joining to tax_map.
 # ─────────────────────────────────────────────────────────────────────────────
 
+dir.create("results", showWarnings = FALSE)
+
 simper_raw <- read.csv("results/simper_by_generation.csv", row.names = 1)
 
 simper_joined <- simper_raw %>%
@@ -445,33 +464,27 @@ simper_joined <- simper_raw %>%
   mutate(
     OrderName = ifelse(is.na(OrderName) | OrderName == "", "Unclassified", OrderName),
     average   = round(as.numeric(average), 4),
-    sd        = round(as.numeric(sd),      4),
-    ratio     = round(as.numeric(ratio),   3),
-    cum_sum   = round(as.numeric(.data$cumsum), 3),  # .data$ avoids base R cumsum() conflict
+    sd        = round(as.numeric(sd), 4),
+    ratio     = round(as.numeric(ratio), 3),
+    cum_sum   = round(as.numeric(.data$cumsum), 3),
     p_num     = as.numeric(as.character(p)),
     p         = ifelse(p_num < 0.001, "<0.001", as.character(round(p_num, 3)))
   )
 
-# Rename all columns using base R
-names(simper_joined)[names(simper_joined) == "comparison"]  <- "Comparison"
-names(simper_joined)[names(simper_joined) == "OrderName"]   <- "Order"
-names(simper_joined)[names(simper_joined) == "average"]     <- "Mean contribution"
-names(simper_joined)[names(simper_joined) == "sd"]          <- "SD"
-names(simper_joined)[names(simper_joined) == "ratio"]       <- "Mean/SD"
-names(simper_joined)[names(simper_joined) == "cum_sum"]     <- "Cumulative sum"
-names(simper_joined)[names(simper_joined) == "p"]           <- "p-value"
-
-simper_named <- simper_joined[, c("Comparison", "Order", "Mean_contribution",
-                                  "SD", "Mean_SD", "Cumulative_sum", "p_value")]
-
-simper_named <- simper_named[order(simper_named$Comparison,
-                                   -simper_named$Mean_contribution), ]
-
-# Now rename to display-friendly names for the Word table
-colnames(simper_named) <- c("Comparison", "Order", "Mean contribution",
-                            "SD", "Mean/SD", "Cumulative sum", "p-value")
+simper_named <- simper_joined %>%
+  transmute(
+    Comparison = comparison,
+    Order = OrderName,
+    `Mean contribution` = average,
+    SD = sd,
+    `Mean/SD` = ratio,
+    `Cumulative sum` = cum_sum,
+    `p-value` = p
+  ) %>%
+  arrange(Comparison, desc(`Mean contribution`))
 
 head(simper_named)
+
 doc_s1 <- read_docx() %>%
   body_add_par(
     "Supplementary Table 1. SIMPER analysis of bacterial order contributions to Bray-Curtis dissimilarities between generation pairs. Mean contribution is the average contribution of each order to the overall dissimilarity between groups. Cumulative sum indicates the running total of contributions in descending order. P-values are from permutation tests (99 permutations).",
@@ -500,7 +513,6 @@ for (comp in unique(simper_named$Comparison)) {
 print(doc_s1, target = "results/Supplementary_Table1_SIMPER.docx")
 cat("Supplementary Table 1 written\n")
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Supplementary Table 2 — PERMANOVA and PERMDISP summary
 # ─────────────────────────────────────────────────────────────────────────────
@@ -515,7 +527,7 @@ perm_full <- data.frame(
 )
 
 perm_g1g3 <- data.frame(
-  Analysis = "Post-disturbance only (G1-G3)",
+  Analysis = "Post-disturbance generations (G1-G3)",
   Term     = c("Generation", "Treatment", "Generation x Treatment", "Residual", "Total"),
   Df       = c(2, 3, 6, 33, 44),
   R2       = c(0.064, 0.094, 0.147, 0.695, 1.000),

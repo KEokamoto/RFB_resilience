@@ -2,45 +2,9 @@
 
 dir.create("figures", showWarnings = FALSE)
 
-#===Figure 2. Distinct Microbial Profile & Alpha Diversity (Observed and Shannon) by Treatment===
-p_fig2 <- ggplot(alpha_G0_long, aes(x = Treatment, y = Value)) +
-  geom_boxplot(outlier.shape = NA, width = 0.65, linewidth = 0.4) +
-  geom_jitter(width = 0.12, height = 0, alpha = 0.7, size = 1.4) +
-  facet_wrap(~Metric, scales = "free_y", nrow = 1) +
-  geom_text(
-    data = kw_results_fig2,
-    aes(x = 1, y = Inf, label = p_label),
-    inherit.aes = FALSE,
-    hjust = 0,
-    vjust = 1.1,
-    size = 3
-  ) +
-  labs(
-    x = "Treatment assignment",
-    y = NULL
-  ) +
-  theme_classic(base_size = 10) +
-  theme(
-    strip.background = element_blank(),
-    strip.text = element_text(face = "plain"),
-    axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
-    axis.title.x = element_text(margin = margin(t = 8)),
-    panel.spacing = unit(1.2, "lines")
-  ) +
-  coord_cartesian(clip = "off")
-
-ggsave(
-  "figures/Fig2_G0_baseline_alpha_diversity.png",
-  plot = p_fig2,
-  width = 6.85,
-  height = 4.5,
-  dpi = 300,
-  bg = "white"
-)
-
-#====FIG 3: Order-level composition in flour and adult gut====================
-# Flour = Fig. 3a
-# Adult gut = Fig. 3b
+#====FIG 2: Order-level composition in flour and adult gut====================
+# Flour = Fig. 2a
+# Adult gut = Fig. 2b
 #---1. Prepare flour dataset--------------------------------------------------
 flour_types <- c("WholeWheatFresh", "WholeWheatUsed", "OatFresh", "OatUsed")
 
@@ -123,7 +87,7 @@ names(shared_colors) <- order_levels
 
 shared_color_scale <- scale_fill_manual(values = shared_colors, drop = FALSE)
 
-#---4. Flour panel data (Fig. 3a)---------------------------------------------
+#---4. Flour panel data (Fig. 2a)---------------------------------------------
 df_counts_flour <- df_flour_raw %>%
   group_by(Sample, Description, Order) %>%
   summarise(Count = sum(Abundance), .groups = "drop")
@@ -145,7 +109,7 @@ group_flour$Description <- factor(
 
 group_flour$Order <- factor(group_flour$Order, levels = order_levels)
 
-#---5. Adult gut panel data (Fig. 3b)------------------------------------------
+#---5. Adult gut panel data (Fig. 2b)------------------------------------------
 df_counts_gut <- df_gut_raw %>%
   group_by(Sample, Treatment, Generation, Order) %>%
   summarise(Count = sum(Abundance), .groups = "drop")
@@ -170,8 +134,8 @@ group_gut$Generation <- factor(
   levels = c("G0", "G1", "G2", "G3")
 )
 
-#---6. Plot Fig. 3a (Flour)---------------------------------------------------
-fig3a_flour <- ggplot(group_flour, aes(x = Description, y = total_count, fill = Order)) +
+#---6. Plot Fig. 2a (Flour)---------------------------------------------------
+fig2a_flour <- ggplot(group_flour, aes(x = Description, y = total_count, fill = Order)) +
   geom_bar(stat = "identity", position = "fill", width = 0.8) +
   scale_y_continuous(
     labels = percent_format(accuracy = 1),
@@ -189,10 +153,10 @@ fig3a_flour <- ggplot(group_flour, aes(x = Description, y = total_count, fill = 
     legend.position = "right"
   )
 
-fig3a_flour
+fig2a_flour
 
-#---7. Plot Fig. 3b (Adult gut)---------------------------------------------
-fig3b_gut <- ggplot(group_gut, aes(x = Treatment, y = total_count, fill = Order)) +
+#---7. Plot Fig. 2b (Adult gut)---------------------------------------------
+fig2b_gut <- ggplot(group_gut, aes(x = Treatment, y = total_count, fill = Order)) +
   geom_bar(stat = "identity", position = "fill", width = 0.8) +
   facet_wrap(~Generation, nrow = 1) +
   scale_y_continuous(
@@ -214,30 +178,31 @@ fig3b_gut <- ggplot(group_gut, aes(x = Treatment, y = total_count, fill = Order)
     legend.position = "right"
   )
 
-fig3b_gut
+fig2b_gut
 
 #---8. Save separately-------------------------------------------------------
-# Fig. 3a: flour panel
-ggsave("figures/Fig3a_flour_order_composition.png",
-  plot = fig3a_flour,
+# Fig. 2a: flour panel
+ggsave("figures/Fig2a_flour_order_composition.png",
+  plot = fig2a_flour,
   width = 6.85,
   height = 3.4,
   dpi = 300,
   bg = "white"
 )
 
-# Fig. 3b: adult gut panel
-ggsave("figures/Fig3b_adultgut_order_composition.png",
-  plot = fig3b_gut,
+# Fig. 2b: adult gut panel
+ggsave("figures/Fig2b_adultgut_order_composition.png",
+  plot = fig2b_gut,
   width = 6.85,
   height = 3.6,
   dpi = 300,
   bg = "white"
 )
 
-#===FIG 4: Alpha diversity dynamics across generations========================
+#===FIG 3: Alpha diversity dynamics across generations========================
 # Observed richness (top) + Shannon diversity (bottom)
-fig4_theme <- theme_classic(base_size = 10) +
+
+fig3_theme <- theme_classic(base_size = 10) +
   theme(
     strip.background = element_blank(),
     strip.text = element_text(face = "plain"),
@@ -262,7 +227,7 @@ p_observed <- alpha_long %>%
   scale_color_manual(values = gen_cols, drop = FALSE, name = "Generation") +
   scale_shape_manual(values = trt_shapes, drop = FALSE, name = "Treatment") +
   geom_text(
-    data = kw_results_fig4 %>% filter(Metric == "Observed richness"),
+    data = kw_results_fig3 %>% filter(Metric == "Observed richness"),
     aes(x = 1, y = Inf, label = p_label),
     inherit.aes = FALSE,
     hjust = 0,
@@ -279,7 +244,7 @@ p_observed <- alpha_long %>%
     color = guide_legend(order = 1),
     shape = guide_legend(order = 2)
   ) +
-  fig4_theme
+  fig3_theme
 
 # Shannon diversity panel
 p_shannon <- alpha_long %>%
@@ -295,7 +260,7 @@ p_shannon <- alpha_long %>%
   scale_color_manual(values = gen_cols, drop = FALSE, name = "Generation") +
   scale_shape_manual(values = trt_shapes, drop = FALSE, name = "Treatment") +
   geom_text(
-    data = kw_results_fig4 %>% filter(Metric == "Shannon diversity"),
+    data = kw_results_fig3 %>% filter(Metric == "Shannon diversity"),
     aes(x = 1, y = Inf, label = p_label),
     inherit.aes = FALSE,
     hjust = 0,
@@ -312,7 +277,7 @@ p_shannon <- alpha_long %>%
     color = guide_legend(order = 1),
     shape = guide_legend(order = 2)
   ) +
-  fig4_theme
+  fig3_theme
 
 # Combine with one shared legend
 combined_plot <- p_observed / p_shannon +
@@ -322,7 +287,7 @@ combined_plot <- p_observed / p_shannon +
 print(combined_plot)
 
 ggsave(
-  "figures/Fig4_alpha_diversity_dynamics.png",
+  "figures/Fig3_alpha_diversity_dynamics.png",
   plot = combined_plot,
   width = 6.85,
   height = 6.4,
@@ -330,7 +295,7 @@ ggsave(
   bg = "white"
 )
 
-#=== Figure 5. Beta diversity of adult gut microbiomes (Bray-Curtis PCoA) ===
+#=== Figure 4. Beta diversity of adult gut microbiomes (Bray-Curtis PCoA) ===
 # Ensure factors/levels
 sample_data(ps_AdultGut)$Treatment <- factor(
   sample_data(ps_AdultGut)$Treatment,
@@ -389,7 +354,7 @@ pcoa_plot1 <- plot_ordination(ps_AdultGut, pcoa_bray, color = "Generation") +
 
 print(pcoa_plot1)
 
-ggsave("figures/Fig5_PCoA_AdultGut.png",
+ggsave("figures/Fig4_PCoA_AdultGut.png",
   plot = pcoa_plot1,
   width = 6.85,
   height = 4.8,
@@ -429,7 +394,7 @@ ggsave("figures/Reviewer_Fig_G1G3_PCoA_AdultGut.png",
   bg = "white"
 )
 
-#=== Figure 6. Diet-shift differential abundance + order-level heatmap ===
+#=== Figure 5. Diet-shift differential abundance + order-level heatmap ===
 
 labels_row_pretty <- labels_row
 labels_row_pretty <- gsub("↑O", "[OAT↑]", labels_row_pretty)
@@ -440,7 +405,7 @@ labels_row_pretty <- gsub("↓W", "[WHEAT↓]", labels_row_pretty)
 heat_colors <- colorRampPalette(c("#2C7BB6", "white", "#D7191C"))(100)
 
 png(
-  filename = "figures/Fig6_diet_shift_heatmap.png",
+  filename = "figures/Fig5_diet_shift_heatmap.png",
   width = 2055,
   height = 2500,
   res = 300
@@ -462,7 +427,7 @@ pheatmap(
 
 dev.off()
 
-#=== Figure 7. Shannon diversity trajectories across generations ============
+#=== Figure 6. Shannon diversity trajectories across generations ============
 # Ensure factors
 rich_combined <- rich_combined %>%
   mutate(
@@ -511,7 +476,7 @@ trt_shapes <- c(
   
 )
 
-fig7 <- ggplot() +
+fig6 <- ggplot() +
   # Disturbance shading
   geom_rect(
     data = disturbance,
@@ -598,10 +563,10 @@ fig7 <- ggplot() +
     plot.margin = margin(8, 8, 8, 8)
   )
 
-print(fig7)
+print(fig6)
 
-ggsave("figures/Fig7_shannon_diversity_trajectories.png",
-  plot = fig7,
+ggsave("figures/Fig6_shannon_diversity_trajectories.png",
+  plot = fig6,
   width = 6.85,
   height = 4.8,
   dpi = 300,

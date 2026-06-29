@@ -1,0 +1,25 @@
+"Treatment","Metric","Generation_1","Generation_2","p_adj_BH"
+"ControlA","Observed richness","G2","G1",0.685714285714286
+"ControlA","Observed richness","G3","G1",0.685714285714286
+"ControlA","Observed richness","G3","G2",0.685714285714286
+"ControlA","Shannon diversity","G2","G1",0.0857142857142857
+"ControlA","Shannon diversity","G3","G1",0.2
+"ControlA","Shannon diversity","G3","G2",0.171428571428571
+"ExpA","Observed richness","G2","G1",0.0857142857142857
+"ExpA","Observed richness","G3","G1",0.0857142857142857
+"ExpA","Observed richness","G3","G2",0.2
+"ExpA","Shannon diversity","G2","G1",0.0428571428571429
+"ExpA","Shannon diversity","G3","G1",0.0428571428571429
+"ExpA","Shannon diversity","G3","G2",0.342857142857143
+"ControlB","Observed richness","G2","G1",0.0857142857142857
+"ControlB","Observed richness","G3","G1",0.133333333333333
+"ControlB","Observed richness","G3","G2",0.133333333333333
+"ControlB","Shannon diversity","G2","G1",0.0857142857142857
+"ControlB","Shannon diversity","G3","G1",0.133333333333333
+"ControlB","Shannon diversity","G3","G2",0.133333333333333
+"ExpB","Observed richness","G2","G1",0.228571428571429
+"ExpB","Observed richness","G3","G1",0.0746189860822545
+"ExpB","Observed richness","G3","G2",0.0746189860822545
+"ExpB","Shannon diversity","G2","G1",0.114285714285714
+"ExpB","Shannon diversity","G3","G1",0.0857142857142857
+"ExpB","Shannon diversity","G3","G2",0.0857142857142857

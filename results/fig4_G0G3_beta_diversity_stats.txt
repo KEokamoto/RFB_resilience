@@ -1,0 +1,55 @@
+$`PERMANOVA G0-G3`
+Permutation test for adonis under reduced model
+Permutation: free
+Number of permutations: 999
+
+vegan::adonis2(formula = bray_all ~ Generation * Treatment, data = meta_all, permutations = 999)
+         Df SumOfSqs      R2      F Pr(>F)    
+Model    15   10.685 0.43527 2.2609  0.001 ***
+Residual 44   13.864 0.56473                  
+Total    59   24.549 1.00000                  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$`Generation dispersion ANOVA`
+Analysis of Variance Table
+
+Response: Distances
+          Df Sum Sq Mean Sq F value    Pr(>F)    
+Groups     3 0.5238  0.1746  7.4934 0.0002654 ***
+Residuals 56 1.3048  0.0233                      
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$`Generation dispersion permutation test`
+
+Permutation test for homogeneity of multivariate dispersions
+Permutation: free
+Number of permutations: 999
+
+Response: Distances
+          Df Sum Sq Mean Sq      F N.Perm Pr(>F)    
+Groups     3 0.5238  0.1746 7.4934    999  0.001 ***
+Residuals 56 1.3048  0.0233                         
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$`Treatment dispersion ANOVA`
+Analysis of Variance Table
+
+Response: Distances
+          Df   Sum Sq   Mean Sq F value Pr(>F)
+Groups     3 0.011686 0.0038954  1.2266 0.3086
+Residuals 56 0.177843 0.0031758               
+
+$`Treatment dispersion permutation test`
+
+Permutation test for homogeneity of multivariate dispersions
+Permutation: free
+Number of permutations: 999
+
+Response: Distances
+          Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
+Groups     3 0.011686 0.0038954 1.2266    999  0.306
+Residuals 56 0.177843 0.0031758                     
+

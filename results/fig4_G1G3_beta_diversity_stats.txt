@@ -1,0 +1,65 @@
+$`Sample counts G1-G3`
+    
+     ControlA ExpA ControlB ExpB
+  G1        4    4        4    3
+  G2        4    4        4    4
+  G3        4    4        2    4
+
+$`PERMANOVA G1-G3`
+Permutation test for adonis under reduced model
+Terms added sequentially (first to last)
+Permutation: free
+Number of permutations: 999
+
+vegan::adonis2(formula = bray_G1G3 ~ Generation + Treatment + Generation:Treatment, data = meta_G1G3, permutations = 999, by = "terms")
+                     Df SumOfSqs      R2      F Pr(>F)    
+Generation            2   1.0765 0.06390 1.5179  0.001 ***
+Treatment             3   1.5875 0.09423 1.4923  0.001 ***
+Generation:Treatment  6   2.4811 0.14728 1.1662  0.010 ** 
+Residual             33  11.7016 0.69459                  
+Total                44  16.8467 1.00000                  
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$`Generation dispersion ANOVA`
+Analysis of Variance Table
+
+Response: Distances
+          Df   Sum Sq   Mean Sq F value Pr(>F)
+Groups     2 0.013534 0.0067672  1.7385 0.1882
+Residuals 42 0.163489 0.0038926               
+
+$`Generation dispersion permutation test`
+
+Permutation test for homogeneity of multivariate dispersions
+Permutation: free
+Number of permutations: 999
+
+Response: Distances
+          Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)
+Groups     2 0.013534 0.0067672 1.7385    999  0.193
+Residuals 42 0.163489 0.0038926                     
+
+$`Treatment dispersion ANOVA`
+Analysis of Variance Table
+
+Response: Distances
+          Df   Sum Sq   Mean Sq F value   Pr(>F)   
+Groups     3 0.049927 0.0166424  6.3235 0.001262 **
+Residuals 41 0.107905 0.0026318                    
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+$`Treatment dispersion permutation test`
+
+Permutation test for homogeneity of multivariate dispersions
+Permutation: free
+Number of permutations: 999
+
+Response: Distances
+          Df   Sum Sq   Mean Sq      F N.Perm Pr(>F)   
+Groups     3 0.049927 0.0166424 6.3235    999  0.003 **
+Residuals 41 0.107905 0.0026318                        
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+

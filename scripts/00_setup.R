@@ -2,8 +2,7 @@ if (!require("BiocManager", quietly = TRUE))
   install.packages("BiocManager")
 BiocManager::install(c("ANCOMBC", "microbiome", "phyloseq", "DESeq2"))
 
-
-install.packages("tidyverse")
+#install.packages("tidyverse")
 
 # Load required packages
 library(stringr)
@@ -17,9 +16,6 @@ library(DESeq2)
 library(pheatmap)
 library(scales)
 library(grid)
-
-
-
 
 # Global factor levels and styling
 gen_levels <- c("G0", "G1", "G2", "G3")

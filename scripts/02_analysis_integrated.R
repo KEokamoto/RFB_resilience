@@ -19,6 +19,19 @@ alpha_df <- estimate_richness(ps_AdultGut, measures = c("Observed", "Shannon")) 
     Generation = factor(Generation, levels = gen_levels)
   )
 
+# Linear model diagnostics for alpha diversity
+shannon_lm <- lm(Shannon ~ Generation * Treatment, data = alpha_df)
+observed_lm <- lm(Observed ~ Generation * Treatment, data = alpha_df)
+
+shapiro_shannon <- shapiro.test(residuals(shannon_lm))
+shapiro_observed <- shapiro.test(residuals(observed_lm))
+
+alpha_residual_normality <- tibble(
+  Metric = c("Shannon diversity", "Observed richness"),
+  W = c(unname(shapiro_shannon$statistic), unname(shapiro_observed$statistic)),
+  p_value = c(shapiro_shannon$p.value, shapiro_observed$p.value)
+)
+
 alpha_long <- alpha_df %>%
   pivot_longer(
     cols = c("Observed", "Shannon"),
@@ -61,26 +74,26 @@ pairwise_wilcox <- alpha_long %>%
 bray_dist <- phyloseq::distance(ps_AdultGut, method = "bray")
 meta <- data.frame(sample_data(ps_AdultGut))
 
-adonis_terms <- adonis2(
+adonis_terms <- vegan::adonis2(
   bray_dist ~ Generation + Treatment + Generation:Treatment,
   data = meta,
   permutations = 999,
   by = "terms"
 )
 
-adonis_margin <- adonis2(
+adonis_margin <- vegan::adonis2(
   bray_dist ~ Generation * Treatment,
   data = meta,
   permutations = 999,
   by = "margin"
 )
 
-disp_gen <- betadisper(bray_dist, meta$Generation)
+disp_gen <- vegan::betadisper(bray_dist, meta$Generation)
 disp_anova <- anova(disp_gen)
-disp_permutest <- permutest(disp_gen, pairwise = TRUE)
+disp_permutest <- vegan::permutest(disp_gen, pairwise = TRUE)
 
-disp_trt <- betadisper(bray_dist, meta$Treatment)
-disp_trt_permutest <- permutest(disp_trt)
+disp_trt <- vegan::betadisper(bray_dist, meta$Treatment)
+disp_trt_permutest <- vegan::permutest(disp_trt)
 
 # -------------------------
 # G1-G3 restricted PERMANOVA and PERMDISP (Reviewer 1)
@@ -89,15 +102,15 @@ ps_AdultGut_G1G3 <- subset_samples(ps_AdultGut, Generation %in% c("G1", "G2", "G
 bray_dist_G1G3   <- phyloseq::distance(ps_AdultGut_G1G3, method = "bray")
 meta_G1G3        <- data.frame(sample_data(ps_AdultGut_G1G3))
 
-adonis_G1G3 <- adonis2(
+adonis_G1G3 <- vegan::adonis2(
   bray_dist_G1G3 ~ Generation + Treatment + Generation:Treatment,
   data = meta_G1G3, permutations = 999, by = "terms"
 )
 
-disp_G1G3_gen <- betadisper(bray_dist_G1G3, meta_G1G3$Generation)
-disp_G1G3_trt <- betadisper(bray_dist_G1G3, meta_G1G3$Treatment)
-permutest_G1G3_gen <- permutest(disp_G1G3_gen)
-permutest_G1G3_trt <- permutest(disp_G1G3_trt)
+disp_G1G3_gen <- vegan::betadisper(bray_dist_G1G3, meta_G1G3$Generation)
+disp_G1G3_trt <- vegan::betadisper(bray_dist_G1G3, meta_G1G3$Treatment)
+permutest_G1G3_gen <- vegan::permutest(disp_G1G3_gen)
+permutest_G1G3_trt <- vegan::permutest(disp_G1G3_trt)
 
 # -------------------------
 # SIMPER — order level (Reviewer 2)
@@ -106,7 +119,7 @@ ps_order_simper <- tax_glom(ps_AdultGut, taxrank = "Order")
 otu_order_simper <- as.data.frame(t(otu_table(ps_order_simper)))
 meta_simper      <- data.frame(sample_data(ps_order_simper))
 
-simper_gen     <- simper(otu_order_simper, meta_simper$Generation, permutations = 99)
+simper_gen     <- vegan::simper(otu_order_simper, meta_simper$Generation, permutations = 999)
 simper_summary <- summary(simper_gen)
 
 # -------------------------
@@ -127,6 +140,14 @@ orders_downstream <- taxa_names(prune_taxa(
 overlap_n   <- length(intersect(orders_G0, orders_downstream))
 pct_overlap <- overlap_n / length(orders_downstream) * 100
 cat("% downstream orders also in G0:", round(pct_overlap, 1), "\n")
+
+overlap_summary <- tibble(
+  n_G0_orders = length(orders_G0),
+  n_downstream_orders = length(orders_downstream),
+  n_downstream_also_in_G0 = overlap_n,
+  proportion_downstream_also_in_G0 = overlap_n / length(orders_downstream),
+  percent_downstream_also_in_G0 = pct_overlap
+)
 
 # -------------------------
 # Order-level phyloseq object for DA analyses
@@ -503,33 +524,155 @@ g1g2_merged <- full_join(expA_G1G2_deseq, expB_G1G2_deseq, by = "taxon") %>%
 # -------------------------
 dir.create("results", showWarnings = FALSE)
 
-write.csv(as.data.frame(adonis_terms),        "results/permanova_terms.csv",            row.names = TRUE)
-write.csv(as.data.frame(adonis_margin),       "results/permanova_margin.csv",           row.names = TRUE)
-write.csv(as.data.frame(disp_anova),          "results/betadisper_anova.csv",           row.names = TRUE)
-write.csv(as.data.frame(adonis_G1G3),         "results/permanova_G1G3.csv",             row.names = TRUE)
-write.csv(as.data.frame(kw_results_fig3),     "results/kruskal.csv",               row.names = FALSE)
-write.csv(as.data.frame(merged_df),           "results/eseq_diet_shift.csv",      row.names = FALSE)
-write.csv(as.data.frame(anbc_merged),         "results/ancombc_diet_shift.csv",    row.names = FALSE)
+# Figure 3 — Alpha diversity
 write.csv(
-  merged_df %>% select(taxon, OrderName, oat_arrow, wheat_arrow, oat_concordant, wheat_concordant),
-  "results/fig6_concordance_summary.csv", row.names = FALSE
+  kw_results_fig3,
+  "results/fig3_alpha_diversity_kruskal.csv",
+  row.names = FALSE
 )
+
+write.csv(
+  alpha_residual_normality,
+  "results/fig3_alpha_residual_normality.csv",
+  row.names = FALSE
+)
+
 write.csv(
   bind_rows(lapply(seq_len(nrow(pairwise_wilcox)), function(i) {
     mat <- pairwise_wilcox$pairwise[[i]]
     as.data.frame(mat) %>%
       rownames_to_column("Gen1") %>%
       pivot_longer(-Gen1, names_to = "Gen2", values_to = "p_adj") %>%
-      mutate(Treatment = pairwise_wilcox$Treatment[i],
-             Metric    = pairwise_wilcox$Metric[i])
+      mutate(
+        Treatment = pairwise_wilcox$Treatment[i],
+        Metric = pairwise_wilcox$Metric[i]
+      )
   })),
-  "results/alpha_pairwise_wilcox.csv", row.names = FALSE
+  "results/fig3_alpha_pairwise_wilcox.csv",
+  row.names = FALSE
 )
-write.csv(do.call(rbind, lapply(names(simper_summary), function(x) {
-  df <- simper_summary[[x]]
-  df$comparison <- x
-  df
-})), "results/simper_by_generation.csv")
-write.csv(g1_flour_deseq,   "results/da_G1_flourtype_deseq.csv",   row.names = FALSE)
-write.csv(g1_flour_ancombc, "results/da_G1_flourtype_ancombc.csv", row.names = FALSE)
-write.csv(g1g2_merged,      "results/da_G1G2_transition.csv",      row.names = FALSE)
+
+# Figure 4 — Beta diversity
+write.csv(
+  as.data.frame(adonis_terms),
+  "results/fig4_G0G3_PERMANOVA_terms.csv",
+  row.names = TRUE
+)
+
+write.csv(
+  as.data.frame(adonis_margin),
+  "results/fig4_G0G3_PERMANOVA_margin.csv",
+  row.names = TRUE
+)
+
+write.csv(
+  as.data.frame(adonis_G1G3),
+  "results/fig4_G1G3_PERMANOVA_BrayCurtis.csv",
+  row.names = TRUE
+)
+
+write.csv(
+  as.data.frame(disp_anova),
+  "results/fig4_G0G3_PERMDISP_generation.csv",
+  row.names = TRUE
+)
+
+write.csv(
+  as.data.frame(anova(disp_trt)),
+  "results/fig4_G0G3_PERMDISP_treatment.csv",
+  row.names = TRUE
+)
+
+write.csv(
+  as.data.frame(anova(disp_G1G3_gen)),
+  "results/fig4_G1G3_PERMDISP_generation.csv",
+  row.names = TRUE
+)
+
+write.csv(
+  as.data.frame(anova(disp_G1G3_trt)),
+  "results/fig4_G1G3_PERMDISP_treatment.csv",
+  row.names = TRUE
+)
+
+write.csv(
+  do.call(rbind, lapply(names(simper_summary), function(x) {
+    df <- simper_summary[[x]]
+    df$comparison <- x
+    df
+  })),
+  "results/SIMPER_by_generation.csv",
+  row.names = FALSE
+)
+
+capture.output(
+  disp_permutest,
+  file = "results/fig4_G0G3_PERMDISP_generation_permutest.txt"
+)
+
+capture.output(
+  disp_trt_permutest,
+  file = "results/fig4_G0G3_PERMDISP_treatment_permutest.txt"
+)
+
+capture.output(
+  permutest_G1G3_gen,
+  file = "results/fig4_G1G3_PERMDISP_generation_permutest.txt"
+)
+
+capture.output(
+  permutest_G1G3_trt,
+  file = "results/fig4_G1G3_PERMDISP_treatment_permutest.txt"
+)                                        
+                                        
+# Figure 5 — Differential abundance
+write.csv(
+  merged_df,
+  "results/fig5_deseq_diet_shift.csv",
+  row.names = FALSE
+)
+
+write.csv(
+  anbc_merged,
+  "results/fig5_ancombc_diet_shift.csv",
+  row.names = FALSE
+)
+
+write.csv(
+  merged_df %>%
+    select(
+      taxon,
+      OrderName,
+      oat_arrow,
+      wheat_arrow,
+      oat_concordant,
+      wheat_concordant
+    ),
+  "results/fig5_concordance_summary.csv",
+  row.names = FALSE
+)
+                                        
+# Supplementary analyses
+write.csv(
+  overlap_summary,
+  "results/G0_downstream_order_overlap_summary.csv",
+  row.names = FALSE
+)
+
+write.csv(
+  g1_flour_deseq,
+  "results/da_G1_flourtype_deseq.csv",
+  row.names = FALSE
+)
+
+write.csv(
+  g1_flour_ancombc,
+  "results/da_G1_flourtype_ancombc.csv",
+  row.names = FALSE
+)
+
+write.csv(
+  g1g2_merged,
+  "results/da_G1G2_transition.csv",
+  row.names = FALSE
+)

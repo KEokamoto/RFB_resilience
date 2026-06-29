@@ -51,6 +51,19 @@ alpha_df <- estimate_richness(ps_AdultGut, measures = c("Observed", "Shannon")) 
     Generation = factor(Generation, levels = gen_levels)
   )
 
+# Linear model diagnostics for alpha diversity
+shannon_lm <- lm(Shannon ~ Generation * Treatment, data = alpha_df)
+observed_lm <- lm(Observed ~ Generation * Treatment, data = alpha_df)
+
+shapiro_shannon <- shapiro.test(residuals(shannon_lm))
+shapiro_observed <- shapiro.test(residuals(observed_lm))
+
+alpha_residual_normality <- tibble(
+  Metric = c("Shannon diversity", "Observed richness"),
+  W = c(unname(shapiro_shannon$statistic), unname(shapiro_observed$statistic)),
+  p_value = c(shapiro_shannon$p.value, shapiro_observed$p.value)
+)
+
 alpha_long <- alpha_df %>%
   pivot_longer(
     cols = c("Observed", "Shannon"),
@@ -63,16 +76,6 @@ alpha_long <- alpha_df %>%
       levels = c("Observed", "Shannon"),
       labels = c("Observed richness", "Shannon diversity")
     )
-  )
-
-kw_results_fig4 <- alpha_long %>%
-  group_by(Treatment, Metric) %>%
-  summarise(
-    p = kruskal.test(Value ~ Generation)$p.value,
-    .groups = "drop"
-  ) %>%
-  mutate(
-    p_label = paste0("Kruskal-Wallis p = ", signif(p, 3))
   )
 
 # -------------------------
@@ -242,6 +245,12 @@ write.csv(as.data.frame(kw_results_fig2), "results/fig2_kruskal.csv", row.names 
 write.csv(as.data.frame(kw_results_fig4), "results/fig4_kruskal.csv", row.names = FALSE)
 write.csv(as.data.frame(merged_df), "results/fig6_deseq_diet_shift.csv", row.names = FALSE)
 
+write.csv(
+  alpha_residual_normality,
+  "results/alpha_residual_normality.csv",
+  row.names = FALSE
+)
+                                        
 # -------------------------
 # Reviewer analysis: Were downstream taxa present in G0?
 # -------------------------

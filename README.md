@@ -32,14 +32,11 @@ data/
 ├── processed/               # Processed phyloseq objects and tables
 
 scripts/
-├── 00_setup.R
-├── 01_processing.R
-├── 02_analysis.R
-├── 02_analysis_integrated.R
-├── 03_figures.R
-├── 03_figure_w_supp.R
-├── 03_figures_integrated.R
-├── run_all.R
+├── 00_setup.R                 # Package loading, global colors/factor levels
+├── 01_processing.R            # Data import, metadata cleaning, phyloseq objects
+├── 02_analysis_integrated.R    # Alpha/beta diversity, DA, SIMPER, overlap stats
+├── 03_figures_integrated.R     # Publication figures
+├── run_all.R                  # Runs full workflow
 
 figures/                     # Publication-ready figures
 results/                     # Statistical outputs and intermediate tables

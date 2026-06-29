@@ -1,7 +1,7 @@
 # Assumes 00_setup.R and 01_processing.R have already been sourced
 
 # -------------------------
-# Figure 2 baseline stats
+# Baseline G0 alpha diversity statistics
 # -------------------------
 alpha_G0 <- estimate_richness(ps_AdultGut_G0, measures = c("Observed", "Shannon")) %>%
   rownames_to_column("SampleID") %>%
@@ -27,7 +27,7 @@ alpha_G0_long <- alpha_G0 %>%
     )
   )
 
-kw_results_fig2 <- alpha_G0_long %>%
+kw_results_baseline_G0 <- alpha_G0_long %>%
   group_by(Metric) %>%
   summarise(
     p = kruskal.test(Value ~ Treatment)$p.value,
@@ -38,7 +38,7 @@ kw_results_fig2 <- alpha_G0_long %>%
   )
 
 # -------------------------
-# Figure 4 alpha diversity stats
+# Figure 3 alpha diversity stats
 # -------------------------
 alpha_df <- estimate_richness(ps_AdultGut, measures = c("Observed", "Shannon")) %>%
   rownames_to_column("SampleID") %>%
@@ -78,32 +78,18 @@ alpha_long <- alpha_df %>%
     )
   )
 
-# -------------------------
-# Beta diversity and PERMANOVA
-# -------------------------
-bray_dist <- phyloseq::distance(ps_AdultGut, method = "bray")
-meta <- data.frame(sample_data(ps_AdultGut))
-
-adonis_terms <- adonis2(
-  bray_dist ~ Generation + Treatment + Generation:Treatment,
-  data = meta,
-  permutations = 999,
-  by = "terms"
-)
-
-adonis_margin <- adonis2(
-  bray_dist ~ Generation * Treatment,
-  data = meta,
-  permutations = 999,
-  by = "margin"
-)
-
-disp <- betadisper(bray_dist, meta$Generation)
-disp_anova <- anova(disp)
-disp_permutest <- permutest(disp, pairwise = TRUE)
+kw_results_fig3 <- alpha_long %>%
+  group_by(Treatment, Metric) %>%
+  summarise(
+    p = kruskal.test(Value ~ Generation)$p.value,
+    .groups = "drop"
+  ) %>%
+  mutate(
+    p_label = paste0("Kruskal-Wallis p = ", signif(p, 3))
+  )
 
 # -------------------------
-# Figure 6 DESeq2 diet-shift analysis
+# Figure 5 differential abundance analysis
 # -------------------------
 ps_order <- tax_glom(ps_AdultGut, taxrank = "Order")
 
@@ -238,21 +224,34 @@ col_labels <- gsub("_", " ", colnames(heatmap_mat_filtered))
 # -------------------------
 dir.create("results", showWarnings = FALSE)
 
-write.csv(as.data.frame(adonis_terms), "results/permanova_terms.csv", row.names = TRUE)
-write.csv(as.data.frame(adonis_margin), "results/permanova_margin.csv", row.names = TRUE)
-write.csv(as.data.frame(disp_anova), "results/betadisper_anova.csv", row.names = TRUE)
-write.csv(as.data.frame(kw_results_fig2), "results/fig2_kruskal.csv", row.names = FALSE)
-write.csv(as.data.frame(kw_results_fig4), "results/fig4_kruskal.csv", row.names = FALSE)
-write.csv(as.data.frame(merged_df), "results/fig6_deseq_diet_shift.csv", row.names = FALSE)
+# Alpha diversity (Figure 3)
+write.csv(
+  kw_results_baseline_G0,
+  "results/baseline_G0_alpha_kruskal.csv",
+  row.names = FALSE
+)
+
+write.csv(
+  kw_results_fig3,
+  "results/fig3_alpha_diversity_kruskal.csv",
+  row.names = FALSE
+)
 
 write.csv(
   alpha_residual_normality,
-  "results/alpha_residual_normality.csv",
+  "results/fig3_alpha_residual_normality.csv",
+  row.names = FALSE
+)
+
+# Diet-shift differential abundance (Figure 5)
+write.csv(
+  merged_df,
+  "results/fig5_deseq_diet_shift.csv",
   row.names = FALSE
 )
                                         
 # -------------------------
-# Reviewer analysis: Were downstream taxa present in G0?
+# Overlap analysis: Were downstream taxa present in G0?
 # -------------------------
 
 df_overlap <- psmelt(ps_order) %>%
@@ -282,12 +281,12 @@ overlap_summary <- tibble(
 
 write.csv(
   overlap_summary,
-  "results/reviewer_G0_downstream_order_overlap_summary.csv",
+  "results/G0_downstream_order_overlap_summary.csv",
   row.names = FALSE
 )
 
 # -------------------------
-# Reviewer analysis: Key order-level relative abundance shifts
+# Key order-level relative abundance shifts
 # -------------------------
 
 order_shift_summary <- psmelt(ps_order) %>%
@@ -314,12 +313,12 @@ order_shift_summary <- psmelt(ps_order) %>%
 
 write.csv(
   order_shift_summary,
-  "results/reviewer_key_order_relative_abundance_shifts.csv",
+  "results/key_order_relative_abundance_shifts.csv",
   row.names = FALSE
 )
 
 # -------------------------
-# Reviewer analysis: Full beta diversity statistics for G0-G3
+# Figure 4 beta diversity statistics: full dataset G0-G3
 # -------------------------
 
 bray_all <- phyloseq::distance(ps_AdultGut, method = "bray")
@@ -332,12 +331,12 @@ adonis_all <- vegan::adonis2(
   permutations = 999
 )
 
-disp_gen_all <- betadisper(bray_all, meta_all$Generation)
-disp_trt_all <- betadisper(bray_all, meta_all$Treatment)
+disp_gen_all <- vegan::betadisper(bray_all, meta_all$Generation)
+disp_trt_all <- vegan::betadisper(bray_all, meta_all$Treatment)
 
 write.csv(
   as.data.frame(adonis_all),
-  "results/fig5_G0G3_PERMANOVA_BrayCurtis.csv",
+  "results/fig4_G0G3_PERMANOVA_BrayCurtis.csv",
   row.names = TRUE
 )
 
@@ -349,46 +348,35 @@ capture.output(
     "Treatment dispersion ANOVA" = anova(disp_trt_all),
     "Treatment dispersion permutation test" = permutest(disp_trt_all, permutations = 999)
   ),
-  file = "results/fig5_G0G3_beta_diversity_stats.txt"
+  file = "results/fig4_G0G3_beta_diversity_stats.txt"
 )
 
 # -------------------------
-# Reviewer analysis: Recovery phase beta diversity only, G1-G3
+# Figure 4 beta diversity statistics: recovery phase G1-G3
 # -------------------------
 
 ps_AdultGut_G1G3 <- subset_samples(
   ps_AdultGut,
-  !is.na(Generation) & Generation %in% c("G1", "G2", "G3")
-)
-
-ps_AdultGut_G1G3 <- prune_samples(sample_sums(ps_AdultGut_G1G3) > 0, ps_AdultGut_G1G3)
-ps_AdultGut_G1G3 <- prune_taxa(taxa_sums(ps_AdultGut_G1G3) > 0, ps_AdultGut_G1G3)
-
-sample_data(ps_AdultGut_G1G3)$Generation <- droplevels(
-  factor(sample_data(ps_AdultGut_G1G3)$Generation, levels = c("G1", "G2", "G3"))
-)
-
-sample_data(ps_AdultGut_G1G3)$Treatment <- droplevels(
-  factor(sample_data(ps_AdultGut_G1G3)$Treatment, levels = trt_levels)
+  Generation %in% c("G1", "G2", "G3")
 )
 
 bray_G1G3 <- phyloseq::distance(ps_AdultGut_G1G3, method = "bray")
 meta_G1G3 <- data.frame(sample_data(ps_AdultGut_G1G3))
-meta_G1G3 <- meta_G1G3[labels(bray_G1G3), ]
 
 set.seed(123)
 adonis_G1G3 <- vegan::adonis2(
-  bray_G1G3 ~ Generation * Treatment,
+  bray_G1G3 ~ Generation + Treatment + Generation:Treatment,
   data = meta_G1G3,
-  permutations = 999
+  permutations = 999,
+  by = "terms"
 )
 
-disp_gen_G1G3 <- betadisper(bray_G1G3, meta_G1G3$Generation)
-disp_trt_G1G3 <- betadisper(bray_G1G3, meta_G1G3$Treatment)
+disp_gen_G1G3 <- vegan::betadisper(bray_G1G3, meta_G1G3$Generation)
+disp_trt_G1G3 <- vegan::betadisper(bray_G1G3, meta_G1G3$Treatment)
 
 write.csv(
   as.data.frame(adonis_G1G3),
-  "results/reviewer_G1G3_PERMANOVA_BrayCurtis.csv",
+  "results/fig4_G1G3_PERMANOVA_BrayCurtis.csv",
   row.names = TRUE
 )
 
@@ -401,11 +389,11 @@ capture.output(
     "Treatment dispersion ANOVA" = anova(disp_trt_G1G3),
     "Treatment dispersion permutation test" = permutest(disp_trt_G1G3, permutations = 999)
   ),
-  file = "results/reviewer_G1G3_beta_diversity_stats.txt"
+  file = "results/fig4_G1G3_beta_diversity_stats.txt"
 )
 
 # -------------------------
-# Reviewer analysis: SIMPER taxa contributing to Bray-Curtis separation
+# SIMPER taxa contributing to Bray-Curtis separation
 # -------------------------
 
 extract_simper_top <- function(simper_obj, top_n = 10) {
@@ -463,18 +451,18 @@ simper_treatment_G1G3_top <- extract_simper_top(simper_treatment_G1G3, top_n = 1
 
 write.csv(
   simper_generation_top,
-  "results/reviewer_SIMPER_top_orders_by_generation.csv",
+  "results/SIMPER_top_orders_by_generation.csv",
   row.names = FALSE
 )
 
 write.csv(
   simper_treatment_G1G3_top,
-  "results/reviewer_SIMPER_top_orders_G1G3_by_treatment.csv",
+  "results/SIMPER_top_orders_G1G3_by_treatment.csv",
   row.names = FALSE
 )
 
 # -------------------------
-# Reviewer analysis: Alpha diversity recovery phase only, G1-G3
+# Alpha diversity recovery phase only, G1-G3
 # -------------------------
 
 alpha_G1G3 <- alpha_long %>%
@@ -492,7 +480,7 @@ kw_alpha_G1G3 <- alpha_G1G3 %>%
 
 write.csv(
   kw_alpha_G1G3,
-  "results/reviewer_G1G3_alpha_Kruskal_results.csv",
+  "results/G1G3_alpha_Kruskal_results.csv",
   row.names = FALSE
 )
 
@@ -524,10 +512,6 @@ for (trt in levels(alpha_G1G3$Treatment)) {
 
 write.csv(
   pairwise_alpha_G1G3_clean,
-  "results/reviewer_G1G3_alpha_pairwise_wilcox_clean.csv",
+  "results/G1G3_alpha_pairwise_wilcox_clean.csv",
   row.names = FALSE
 )
-
-
-
-

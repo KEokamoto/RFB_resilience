@@ -1,4 +1,4 @@
-# Assumes 00_setup.R, 01_processing.R, and 02_analysis_integrated.R have already been sourced.
+# Assumes 00_setup.R, 01_processing.R, and 02_analysis.R have already been sourced.
 # REVISED: Fig 2 sample-level composition bars, Fig 3 alpha diversity,
 #          Fig 4 two-panel PCoA, Fig 5 heatmap, Fig 6 single global baseline
 #          Uses concordance-filtered labels_row from 02_analysis_integrated.R

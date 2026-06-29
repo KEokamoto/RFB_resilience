@@ -1,6 +1,6 @@
-if (!require("BiocManager", quietly = TRUE))
-  install.packages("BiocManager")
-BiocManager::install(c("ANCOMBC", "microbiome", "phyloseq", "DESeq2"))
+# if (!require("BiocManager", quietly = TRUE))
+#  install.packages("BiocManager")
+# BiocManager::install(c("ANCOMBC", "microbiome", "phyloseq", "DESeq2"))
 
 #install.packages("tidyverse")
 
